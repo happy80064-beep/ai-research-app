@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS personas (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  studyId INT NOT NULL,\n  name VARCHAR(255) NOT NULL,\n  avatarUrl TEXT,\n  age INT,\n  gender VARCHAR(50),\n  location VARCHAR(255),\n  occupation VARCHAR(255),\n  income VARCHAR(100),\n  personality JSON,\n  behaviorPatterns JSON,\n  backstory TEXT,\n  interviewCompleted BOOLEAN NOT NULL DEFAULT FALSE,\n  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3jawnfRKz91xjDg.afe20a0f6338 --database mfLvC6vVaz4p7UtAcCW6Hw --execute CREATE TABLE IF NOT EXISTS personas (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  studyId INT NOT NULL,\n  name VARCHAR(255) NOT NULL,\n  avatarUrl TEXT,\n  age INT,\n  gender VARCHAR(50),\n  location VARCHAR(255),\n  occupation VARCHAR(255),\n  income VARCHAR(100),\n  personality JSON,\n  behaviorPatterns JSON,\n  backstory TEXT,\n  interviewCompleted BOOLEAN NOT NULL DEFAULT FALSE,\n  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 175
+}
