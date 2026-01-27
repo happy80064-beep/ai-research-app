@@ -655,13 +655,38 @@ export default function NewStudyInteractive() {
 
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">{t('newStudyInteractive.confirm.personaCount')}</Label>
-                    <Input
-                      type="number"
-                      min={3}
-                      max={10}
-                      value={plan.personaCount}
-                      onChange={(e) => setPlan({ ...plan, personaCount: parseInt(e.target.value) || 5 })}
-                    />
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const newValue = Math.max(3, plan.personaCount - 1);
+                          setPlan({ ...plan, personaCount: newValue });
+                        }}
+                        disabled={plan.personaCount <= 3}
+                        className="h-10 w-10 shrink-0"
+                      >
+                        <span className="text-lg">-</span>
+                      </Button>
+                      <div className="flex-1 text-center font-mono text-xl font-bold">
+                        {plan.personaCount}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const newValue = Math.min(10, plan.personaCount + 1);
+                          setPlan({ ...plan, personaCount: newValue });
+                        }}
+                        disabled={plan.personaCount >= 10}
+                        className="h-10 w-10 shrink-0"
+                      >
+                        <span className="text-lg">+</span>
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {t('newStudyInteractive.confirm.personaCountRange')}
+                    </p>
                   </div>
                 </div>
 

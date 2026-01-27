@@ -108,7 +108,7 @@ export default function DeepReport() {
           {deepReport ? (
             <DeepReportView
               data={deepReport.content as any}
-              reportDate={new Date(deepReport.createdAt).toLocaleDateString()}
+              reportDate={new Date(deepReport.createdAt).toISOString().split('T')[0]}
               intervieweeCount={personas?.length || 0}
               interviewCount={personas?.length || 0}
             />

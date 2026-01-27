@@ -258,6 +258,7 @@ const translations = {
     "newStudyInteractive.confirm.output3": "消费决策模型：决策路径、关键影响因素、价格敏感区间",
     "newStudyInteractive.confirm.output4": "商业机会识别：产品/服务设计建议、市场切入策略",
     "newStudyInteractive.confirm.personaCount": "人设数量",
+    "newStudyInteractive.confirm.personaCountRange": "数量范围：3-10 个",
     "newStudyInteractive.confirm.start": "开始执行研究",
     
     "newStudyInteractive.creating.title": "正在创建您的研究项目...",
@@ -601,6 +602,7 @@ const translations = {
     "newStudyInteractive.confirm.output3": "Consumption Decision Model: Decision path, key influencing factors, price sensitivity",
     "newStudyInteractive.confirm.output4": "Business Opportunity Identification: Product/service design suggestions, market entry strategies",
     "newStudyInteractive.confirm.personaCount": "Persona Count",
+    "newStudyInteractive.confirm.personaCountRange": "Range: 3-10 personas",
     "newStudyInteractive.confirm.start": "Execute Research",
     
     "newStudyInteractive.creating.title": "Creating Your Research Project...",
