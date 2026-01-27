@@ -392,7 +392,7 @@ export const appRouter = router({
 - 兴趣：${demographicCriteria.interests?.join('、') || '多样化'}
 
 为每个画像提供：
-1. 姓名（真实的中文姓名）
+1. 姓名（请务必使用接近真人社交媒体昵称或真实姓名，避免"AI感"过强的名字。例如：使用"李明"、"Alex_Wang"、"小雅"、"Traveler_Joe"等，不要使用"用户A"、"AI助理"等）
 2. 年龄（具体数字）
 3. 性别
 4. 地区（城市/地区）
@@ -418,7 +418,7 @@ Demographic Criteria:
 - Interests: ${demographicCriteria.interests?.join(', ') || 'Various'}
 
 For each persona, provide:
-1. Name (realistic)
+1. Name (Must be realistic or social-media style usernames. e.g., "Alex_Wang", "SummerDream", "Sarah J.", "Mike_Travels". Avoid generic AI names like "Persona 1", "User A")
 2. Age (specific number)
 3. Gender
 4. Location (city/region)
