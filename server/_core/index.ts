@@ -27,7 +27,16 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+import { ENV } from "./env";
+
 async function startServer() {
+  console.log("Starting server...");
+  console.log("Environment check:");
+  console.log("- NODE_ENV:", process.env.NODE_ENV);
+  console.log("- DATABASE_URL:", process.env.DATABASE_URL ? "Set" : "Missing");
+  console.log("- OPENAI_API_KEY/FORGE_KEY:", ENV.forgeApiKey ? "Set" : "Missing");
+  console.log("- API Base URL:", ENV.forgeApiUrl);
+
   const app = express();
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
