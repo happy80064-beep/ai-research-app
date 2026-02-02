@@ -215,10 +215,11 @@ const normalizeToolChoice = (
 const resolveApiUrl = () => {
   const baseUrl = ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
     ? ENV.forgeApiUrl.replace(/\/$/, "")
-    : "https://forge.manus.im";
+    : "https://generativelanguage.googleapis.com/v1beta";
   
+  // If it's the official Google Gemini API
   if (baseUrl.includes("generativelanguage.googleapis.com")) {
-      return `${baseUrl}/chat/completions`;
+      return `${baseUrl}/openai/chat/completions`;
   }
   return `${baseUrl}/v1/chat/completions`;
 };
