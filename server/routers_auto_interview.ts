@@ -204,7 +204,6 @@ Respond naturally and authentically as this person would. Share specific example
             type: "json_schema",
             json_schema: {
               name: "interview_transcript",
-              strict: true,
               schema: {
                 type: "object",
                 properties: {
@@ -254,7 +253,9 @@ Respond naturally and authentically as this person would. Share specific example
         });
 
         const content = response.choices[0]?.message?.content as string;
-        const data = JSON.parse(content);
+        // Clean markdown code blocks if present
+        const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
+        const data = JSON.parse(cleanContent);
         const tokensUsed = response.usage?.total_tokens || 2000;
 
         // Save interview messages

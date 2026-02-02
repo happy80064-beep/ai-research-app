@@ -132,7 +132,6 @@ export const appRouter = router({
             type: "json_schema",
             json_schema: {
               name: "research_plan_recommendation",
-              strict: true,
               schema: {
                 type: "object",
                 properties: {
@@ -199,7 +198,6 @@ export const appRouter = router({
             type: "json_schema",
             json_schema: {
               name: "dimension_recommendations",
-              strict: true,
               schema: {
                 type: "object",
                 properties: {
@@ -228,7 +226,9 @@ export const appRouter = router({
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to recommend dimensions" });
         }
 
-        const result = JSON.parse(content as string);
+        // Clean markdown code blocks if present
+        const cleanContent = (content as string).replace(/```json\n?|\n?```/g, "").trim();
+        const result = JSON.parse(cleanContent);
         return result.dimensions;
       }),
 
@@ -264,7 +264,6 @@ export const appRouter = router({
             type: "json_schema",
             json_schema: {
               name: "scenario_descriptions",
-              strict: true,
               schema: {
                 type: "object",
                 properties: {
@@ -284,7 +283,9 @@ export const appRouter = router({
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to generate scenario descriptions" });
         }
 
-        const result = JSON.parse(content as string);
+        // Clean markdown code blocks if present
+        const cleanContent = (content as string).replace(/```json\n?|\n?```/g, "").trim();
+        const result = JSON.parse(cleanContent);
         return result;
       }),
 
@@ -323,7 +324,6 @@ export const appRouter = router({
             type: "json_schema",
             json_schema: {
               name: "industry_analysis",
-              strict: true,
               schema: {
                 type: "object",
                 properties: {
@@ -437,18 +437,17 @@ Return as a JSON array of personas with structured personality and behavior data
               { role: "user", content: prompt },
             ],
             response_format: {
-              type: "json_schema",
-              json_schema: {
-                name: "personas",
-                strict: true,
-                schema: {
-                  type: "object",
-                  properties: {
-                    personas: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
+            type: "json_schema",
+            json_schema: {
+              name: "personas",
+              schema: {
+                type: "object",
+                properties: {
+                  personas: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
                           name: { type: "string" },
                           age: { type: "integer" },
                           gender: { type: "string" },
@@ -493,7 +492,9 @@ Return as a JSON array of personas with structured personality and behavior data
           const content = response.choices[0]?.message?.content as string;
           if (!content) throw new Error("No response from LLM");
 
-          const data = JSON.parse(content);
+          // Clean markdown code blocks if present
+          const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
+          const data = JSON.parse(cleanContent);
           const tokensUsed = response.usage?.total_tokens || 5000;
 
           for (const personaData of data.personas) {
@@ -710,12 +711,11 @@ Return as structured JSON.`;
               { role: "user", content: prompt },
             ],
             response_format: {
-              type: "json_schema",
-              json_schema: {
-                name: "report",
-                strict: true,
-                schema: {
-                  type: "object",
+            type: "json_schema",
+            json_schema: {
+              name: "report",
+              schema: {
+                type: "object",
                   properties: {
                     executiveSummary: { type: "string" },
                     keyFindings: {
