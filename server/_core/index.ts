@@ -36,6 +36,7 @@ async function startServer() {
   console.log("- DATABASE_URL:", process.env.DATABASE_URL ? "Set" : "Missing");
   console.log("- OPENAI_API_KEY/FORGE_KEY:", ENV.forgeApiKey ? "Set" : "Missing");
   console.log("- API Base URL:", ENV.forgeApiUrl);
+  console.log("- Default Model:", ENV.defaultModel);
 
   const app = express();
   const server = createServer(app);

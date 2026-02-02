@@ -520,8 +520,9 @@ Return as a JSON array of personas with structured personality and behavior data
 
           return { success: true, count: data.personas.length };
         } catch (error) {
+          console.error("[Persona Generation] Failed:", error);
           await db.updateStudy(input.studyId, { status: "draft" });
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to generate personas" });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Failed to generate personas: ${error instanceof Error ? error.message : String(error)}` });
         }
       }),
 
