@@ -313,6 +313,42 @@ function buildApiUrl(config: ModelConfig): string {
 }
 
 // ============================================
+// 模型名称映射表
+// ============================================
+const MODEL_NAME_MAPPING: Record<string, Record<string, string>> = {
+  gemini: {
+    "gemini-2.5-pro": "gemini-1.5-pro-latest",
+    "gemini-3.0-pro": "gemini-1.5-pro-latest",
+  },
+  kimi: {
+    "kimi-2.5": "moonshot-v1-8k",
+    "moonshot-v1-32k": "moonshot-v1-32k",
+  },
+  qwen: {
+    "qwen-max": "qwen-max",
+    "qwen-turbo": "qwen-turbo",
+  },
+  deepseek: {
+    "deepseek-reasoner": "deepseek-reasoner",
+    "deepseek-chat": "deepseek-chat",
+  },
+  forge: {
+    "forge-default": "gpt-4",
+  },
+};
+
+// ============================================
+// 获取实际模型名称
+// ============================================
+function getActualModelName(provider: string, modelName: string): string {
+  const mapping = MODEL_NAME_MAPPING[provider];
+  if (mapping && mapping[modelName]) {
+    return mapping[modelName];
+  }
+  return modelName;
+}
+
+// ============================================
 // 构建请求体
 // ============================================
 function buildRequestBody(
@@ -322,15 +358,7 @@ function buildRequestBody(
   const { messages, model, tools, toolChoice, tool_choice, outputSchema, output_schema, responseFormat, response_format } = params;
 
   // 根据 provider 调整模型名称
-  let actualModel = model || config.name;
-
-  // 不同 provider 的模型名称映射
-  if (config.provider === "gemini") {
-    // Gemini 模型名称转换
-    if (actualModel === "gemini-2.5-pro") {
-      actualModel = "gemini-1.5-pro-latest"; // 或者其他可用的 Gemini 模型
-    }
-  }
+  const actualModel = getActualModelName(config.provider, model || config.name);
 
   const payload: Record<string, unknown> = {
     model: actualModel,
@@ -348,7 +376,7 @@ function buildRequestBody(
   }
 
   // 最大 token 数
-  payload.max_tokens = 32768;
+  payload.max_tokens = 8192;
 
   // 响应格式
   const normalizedResponseFormat = normalizeResponseFormat({
@@ -368,7 +396,7 @@ function buildRequestBody(
 // 构建 Gemini 专用请求
 // ============================================
 function buildGeminiRequestBody(params: InvokeParams): Record<string, unknown> {
-  const { messages } = params;
+  const { messages, outputSchema, output_schema, responseFormat, response_format } = params;
 
   // 转换消息格式为 Gemini 格式
   const contents = messages.map(msg => ({
@@ -376,13 +404,25 @@ function buildGeminiRequestBody(params: InvokeParams): Record<string, unknown> {
     parts: [{ text: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content) }],
   }));
 
-  return {
+  const requestBody: Record<string, unknown> = {
     contents,
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 8192,
+      responseMimeType: "application/json",
     },
   };
+
+  // 如果有 schema，添加到请求中
+  const schema = outputSchema || output_schema;
+  if (schema?.schema) {
+    requestBody.generationConfig = {
+      ...requestBody.generationConfig,
+      responseSchema: schema.schema,
+    };
+  }
+
+  return requestBody;
 }
 
 // ============================================
@@ -425,7 +465,7 @@ async function invokeSingleModel(
 
   // 特殊处理 Gemini API
   if (config.provider === "gemini" && config.baseUrl.includes("generativelanguage.googleapis.com")) {
-    const modelName = config.name === "gemini-2.5-pro" ? "gemini-1.5-pro-latest" : config.name;
+    const modelName = getActualModelName("gemini", config.name);
     const url = `${config.baseUrl}/models/${modelName}:generateContent?key=${config.apiKey}`;
 
     const axiosConfig: Record<string, unknown> = {
@@ -519,6 +559,13 @@ export async function invokeLLMWithFailover(params: InvokeParams): Promise<Invok
 
   // 所有模型都失败了
   const errorSummary = errors.map(e => `${e.model}: ${e.error.message}`).join("; ");
+  console.error(`[ModelRouter] All ${errors.length} models failed. Details:`);
+  errors.forEach(e => {
+    console.error(`  - ${e.model}: ${e.error.message}`);
+    if (e.error.stack) {
+      console.error(`    Stack: ${e.error.stack.split('\n')[0]}`);
+    }
+  });
   throw new Error(`[ModelRouter] All models failed. Errors: ${errorSummary}`);
 }
 
