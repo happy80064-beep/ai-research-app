@@ -1,6 +1,11 @@
 import { ENV } from "./env";
-import axios from "axios";
-import { HttpsProxyAgent } from "https-proxy-agent";
+import { invokeLLMWithFailover } from "./modelRouter";
+
+/**
+ * LLM 调用模块
+ * 支持多模型自动故障转移
+ * 向后兼容原有 API
+ */
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -21,7 +26,7 @@ export type FileContent = {
   type: "file_url";
   file_url: {
     url: string;
-    mime_type?: "audio/mpeg" | "audio/wav" | "application/pdf" | "audio/mp4" | "video/mp4" ;
+    mime_type?: "audio/mpeg" | "audio/wav" | "application/pdf" | "audio/mp4" | "video/mp4";
   };
 };
 
@@ -113,238 +118,40 @@ export type ResponseFormat =
   | { type: "json_object" }
   | { type: "json_schema"; json_schema: JsonSchema };
 
-const ensureArray = (
-  value: MessageContent | MessageContent[]
-): MessageContent[] => (Array.isArray(value) ? value : [value]);
-
-const normalizeContentPart = (
-  part: MessageContent
-): TextContent | ImageContent | FileContent => {
-  if (typeof part === "string") {
-    return { type: "text", text: part };
-  }
-
-  if (part.type === "text") {
-    return part;
-  }
-
-  if (part.type === "image_url") {
-    return part;
-  }
-
-  if (part.type === "file_url") {
-    return part;
-  }
-
-  throw new Error("Unsupported message content part");
-};
-
-const normalizeMessage = (message: Message) => {
-  const { role, name, tool_call_id } = message;
-
-  if (role === "tool" || role === "function") {
-    const content = ensureArray(message.content)
-      .map(part => (typeof part === "string" ? part : JSON.stringify(part)))
-      .join("\n");
-
-    return {
-      role,
-      name,
-      tool_call_id,
-      content,
-    };
-  }
-
-  const contentParts = ensureArray(message.content).map(normalizeContentPart);
-
-  // If there's only text content, collapse to a single string for compatibility
-  if (contentParts.length === 1 && contentParts[0].type === "text") {
-    return {
-      role,
-      name,
-      content: contentParts[0].text,
-    };
-  }
-
-  return {
-    role,
-    name,
-    content: contentParts,
-  };
-};
-
-const normalizeToolChoice = (
-  toolChoice: ToolChoice | undefined,
-  tools: Tool[] | undefined
-): "none" | "auto" | ToolChoiceExplicit | undefined => {
-  if (!toolChoice) return undefined;
-
-  if (toolChoice === "none" || toolChoice === "auto") {
-    return toolChoice;
-  }
-
-  if (toolChoice === "required") {
-    if (!tools || tools.length === 0) {
-      throw new Error(
-        "tool_choice 'required' was provided but no tools were configured"
-      );
-    }
-
-    if (tools.length > 1) {
-      throw new Error(
-        "tool_choice 'required' needs a single tool or specify the tool name explicitly"
-      );
-    }
-
-    return {
-      type: "function",
-      function: { name: tools[0].function.name },
-    };
-  }
-
-  if ("name" in toolChoice) {
-    return {
-      type: "function",
-      function: { name: toolChoice.name },
-    };
-  }
-
-  return toolChoice;
-};
-
-const resolveApiUrl = () => {
-  const baseUrl = ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? ENV.forgeApiUrl.replace(/\/$/, "")
-    : "https://forge.manus.im";
-  
-  if (baseUrl.includes("generativelanguage.googleapis.com")) {
-      return `${baseUrl}/chat/completions`;
-  }
-  return `${baseUrl}/v1/chat/completions`;
-};
-
-const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-};
-
-const normalizeResponseFormat = ({
-  responseFormat,
-  response_format,
-  outputSchema,
-  output_schema,
-}: {
-  responseFormat?: ResponseFormat;
-  response_format?: ResponseFormat;
-  outputSchema?: OutputSchema;
-  output_schema?: OutputSchema;
-}):
-  | { type: "json_schema"; json_schema: JsonSchema }
-  | { type: "text" }
-  | { type: "json_object" }
-  | undefined => {
-  const explicitFormat = responseFormat || response_format;
-  if (explicitFormat) {
-    if (
-      explicitFormat.type === "json_schema" &&
-      !explicitFormat.json_schema?.schema
-    ) {
-      throw new Error(
-        "responseFormat json_schema requires a defined schema object"
-      );
-    }
-    return explicitFormat;
-  }
-
-  const schema = outputSchema || output_schema;
-  if (!schema) return undefined;
-
-  if (!schema.name || !schema.schema) {
-    throw new Error("outputSchema requires both name and schema");
-  }
-
-  return {
-    type: "json_schema",
-    json_schema: {
-      name: schema.name,
-      schema: schema.schema,
-      ...(typeof schema.strict === "boolean" ? { strict: schema.strict } : {}),
-    },
-  };
-};
-
+/**
+ * 调用 LLM - 支持多模型自动故障转移
+ *
+ * 优先使用指定的模型，如果失败则自动切换到备用模型
+ * 支持的模型: gemini-2.5+, kimi-2.5, qwen, deepseek-reasoner
+ *
+ * @param params - 调用参数
+ * @returns LLM 响应结果
+ */
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
-
-  const {
-    messages,
-    model,
-    tools,
-    toolChoice,
-    tool_choice,
-    outputSchema,
-    output_schema,
-    responseFormat,
-    response_format,
-  } = params;
-
-  const payload: Record<string, unknown> = {
-    model: model || ENV.defaultModel,
-    messages: messages.map(normalizeMessage),
-  };
-
-  if (tools && tools.length > 0) {
-    payload.tools = tools;
-  }
-
-  const normalizedToolChoice = normalizeToolChoice(
-    toolChoice || tool_choice,
-    tools
-  );
-  if (normalizedToolChoice) {
-    payload.tool_choice = normalizedToolChoice;
-  }
-
-  payload.max_tokens = 32768
-
-
-  const normalizedResponseFormat = normalizeResponseFormat({
-    responseFormat,
-    response_format,
-    outputSchema,
-    output_schema,
-  });
-
-  if (normalizedResponseFormat) {
-    payload.response_format = normalizedResponseFormat;
+  // 检查是否启用自动故障转移
+  if (!ENV.enableAutoFailover) {
+    console.log("[LLM] Auto failover is disabled, using single model");
   }
 
   try {
-    const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
-    const axiosConfig: Record<string, unknown> = {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${ENV.forgeApiKey}`,
-      },
-    };
-
-    if (proxyUrl) {
-      console.log(`[LLM] Using proxy: ${proxyUrl}`);
-      axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
-      axiosConfig.proxy = false; // Disable axios default proxy handling
-    }
-
-    const { data } = await axios.post(resolveApiUrl(), payload, axiosConfig);
-    return data as InvokeResult;
+    const result = await invokeLLMWithFailover(params);
+    return result;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(
-        `LLM invoke failed: ${error.response?.status} ${
-          error.response?.statusText
-        } – ${JSON.stringify(error.response?.data)}`
-      );
+    // 增强错误信息
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[LLM] All model invocations failed: ${errorMessage}`);
+
+    // 如果错误信息已经包含 [ModelRouter]，直接抛出
+    if (errorMessage.includes("[ModelRouter]")) {
+      throw error;
     }
-    throw error;
+
+    // 否则包装错误
+    throw new Error(`LLM invoke failed: ${errorMessage}`);
   }
 }
+
+/**
+ * 获取当前模型状态（用于健康检查）
+ */
+export { getModelStatus, resetModelHealth } from "./modelRouter";
