@@ -143,48 +143,50 @@ export default function StudyDetail() {
                   </p>
                 </div>
               </div>
-              {personas && personas.length > 0 ? (
-                <div className="space-y-2">
-                  {personas.slice(0, 3).map((persona: any) => (
-                    <div key={persona.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary">
-                          {persona.name?.charAt(0) || "P"}
-                        </span>
+              <div className="min-h-[80px]">
+                {personas && personas.length > 0 ? (
+                  <div className="space-y-2">
+                    {personas.slice(0, 3).map((persona: any) => (
+                      <div key={persona.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
+                          <span className="text-xs font-medium text-primary">
+                            {persona.name?.charAt(0) || "P"}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{persona.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {persona.age} · {persona.occupation}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{persona.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {persona.age} · {persona.occupation}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {personas.length > 3 && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      +{personas.length - 3} more personas
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <Button
-                  className="w-full btn-neon gap-2"
-                  onClick={() => generatePersonasMutation.mutate({ studyId })}
-                  disabled={generatePersonasMutation.isPending}
-                >
-                  {generatePersonasMutation.isPending ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Generate Personas
-                    </>
-                  )}
-                </Button>
-              )}
+                    ))}
+                    {personas.length > 3 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        +{personas.length - 3} more personas
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full btn-neon gap-2"
+                    onClick={() => generatePersonasMutation.mutate({ studyId })}
+                    disabled={generatePersonasMutation.isPending}
+                  >
+                    {generatePersonasMutation.isPending ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Generate Personas
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Auto Interview Card */}
