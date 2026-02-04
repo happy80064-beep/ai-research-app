@@ -438,6 +438,38 @@ function convertGeminiResponse(data: any, modelName: string): InvokeResult {
 }
 
 // ============================================
+// 调试日志函数
+// ============================================
+function logRequest(provider: string, url: string, headers: Record<string, string>, payload: any) {
+  console.log(`\n========== ${provider} REQUEST ==========`);
+  console.log(`URL: ${url}`);
+  console.log(`Headers: ${JSON.stringify({ ...headers, Authorization: headers.Authorization ? 'Bearer ***' : undefined })}`);
+  console.log(`Payload: ${JSON.stringify(payload, null, 2)}`);
+  console.log(`====================================\n`);
+}
+
+function logResponse(provider: string, status: number, data: any) {
+  console.log(`\n========== ${provider} RESPONSE ==========`);
+  console.log(`Status: ${status}`);
+  console.log(`Data: ${JSON.stringify(data, null, 2).substring(0, 2000)}`);
+  console.log(`=====================================\n`);
+}
+
+function logError(provider: string, error: any) {
+  console.log(`\n========== ${provider} ERROR ==========`);
+  if (error.response) {
+    console.log(`Status: ${error.response.status}`);
+    console.log(`StatusText: ${error.response.statusText}`);
+    console.log(`Headers: ${JSON.stringify(error.response.headers)}`);
+    console.log(`Data: ${JSON.stringify(error.response.data, null, 2)}`);
+  } else {
+    console.log(`Message: ${error.message}`);
+    console.log(`Stack: ${error.stack}`);
+  }
+  console.log(`===================================\n`);
+}
+
+// ============================================
 // 执行单个模型调用
 // ============================================
 async function invokeSingleModel(
@@ -451,12 +483,14 @@ async function invokeSingleModel(
     const url = `${config.baseUrl}/chat/completions`;
     const payload = buildRequestBody(config, params);
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`,
+    };
+
     const axiosConfig: Record<string, unknown> = {
       timeout: config.timeout,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
-      },
+      headers,
     };
 
     if (proxyUrl) {
@@ -464,11 +498,17 @@ async function invokeSingleModel(
       axiosConfig.proxy = false;
     }
 
-    console.log(`[ModelRouter] Invoking OpenAI ${config.name} at ${url}`);
+    logRequest("OpenAI", url, headers, payload);
 
-    const { data } = await axios.post(url, payload, axiosConfig);
-    markModelSuccess(config.name);
-    return data as InvokeResult;
+    try {
+      const response = await axios.post(url, payload, axiosConfig);
+      logResponse("OpenAI", response.status, response.data);
+      markModelSuccess(config.name);
+      return response.data as InvokeResult;
+    } catch (error: any) {
+      logError("OpenAI", error);
+      throw error;
+    }
   }
 
   // Gemini API
@@ -476,11 +516,13 @@ async function invokeSingleModel(
     const modelName = config.name;
     const url = `${config.baseUrl}/models/${modelName}:generateContent?key=${config.apiKey}`;
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
     const axiosConfig: Record<string, unknown> = {
       timeout: config.timeout,
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     };
 
     if (proxyUrl) {
@@ -488,25 +530,32 @@ async function invokeSingleModel(
       axiosConfig.proxy = false;
     }
 
-    console.log(`[ModelRouter] Invoking Gemini ${modelName}`);
-
     const payload = buildGeminiRequestBody(params);
-    const { data } = await axios.post(url, payload, axiosConfig);
+    logRequest("Gemini", url.replace(config.apiKey, "***"), headers, payload);
 
-    markModelSuccess(config.name);
-    return convertGeminiResponse(data, config.name);
+    try {
+      const response = await axios.post(url, payload, axiosConfig);
+      logResponse("Gemini", response.status, response.data);
+      markModelSuccess(config.name);
+      return convertGeminiResponse(response.data, config.name);
+    } catch (error: any) {
+      logError("Gemini", error);
+      throw error;
+    }
   }
 
   // Kimi / Qwen / Deepseek (OpenAI 兼容)
   const url = `${config.baseUrl}/chat/completions`;
   const payload = buildRequestBody(config, params);
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${config.apiKey}`,
+  };
+
   const axiosConfig: Record<string, unknown> = {
     timeout: config.timeout,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
+    headers,
   };
 
   if (proxyUrl) {
@@ -514,11 +563,17 @@ async function invokeSingleModel(
     axiosConfig.proxy = false;
   }
 
-  console.log(`[ModelRouter] Invoking ${config.provider}/${config.name} at ${url}`);
+  logRequest(config.provider, url, headers, payload);
 
-  const { data } = await axios.post(url, payload, axiosConfig);
-  markModelSuccess(config.name);
-  return data as InvokeResult;
+  try {
+    const response = await axios.post(url, payload, axiosConfig);
+    logResponse(config.provider, response.status, response.data);
+    markModelSuccess(config.name);
+    return response.data as InvokeResult;
+  } catch (error: any) {
+    logError(config.provider, error);
+    throw error;
+  }
 }
 
 // ============================================

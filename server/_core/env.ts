@@ -185,3 +185,26 @@ export function getDefaultModelConfig(): ModelConfig | undefined {
 export function hasAnyEnabledModel(): boolean {
   return MODEL_CONFIGS.some(config => config.enabled);
 }
+
+// ============================================
+// 启动时打印模型配置状态（调试用）
+// ============================================
+export function logModelConfigStatus(): void {
+  console.log("\n========== Model Configuration Status ==========");
+  console.log(`OpenAI API Key: ${ENV.openaiApiKey ? "✓ Loaded (" + ENV.openaiApiKey.substring(0, 10) + "...)" : "✗ Not set"}`);
+  console.log(`OpenAI API URL: ${ENV.openaiApiUrl}`);
+  console.log(`Gemini API Key: ${ENV.geminiApiKey ? "✓ Loaded (" + ENV.geminiApiKey.substring(0, 10) + "...)" : "✗ Not set"}`);
+  console.log(`Gemini API URL: ${ENV.geminiApiUrl}`);
+  console.log(`Kimi API Key: ${ENV.kimiApiKey ? "✓ Loaded (" + ENV.kimiApiKey.substring(0, 10) + "...)" : "✗ Not set"}`);
+  console.log(`Kimi API URL: ${ENV.kimiApiUrl}`);
+  console.log(`Qwen API Key: ${ENV.qwenApiKey ? "✓ Loaded (" + ENV.qwenApiKey.substring(0, 10) + "...)" : "✗ Not set"}`);
+  console.log(`Qwen API URL: ${ENV.qwenApiUrl}`);
+  console.log(`Deepseek API Key: ${ENV.deepseekApiKey ? "✓ Loaded (" + ENV.deepseekApiKey.substring(0, 10) + "...)" : "✗ Not set"}`);
+  console.log(`Deepseek API URL: ${ENV.deepseekApiUrl}`);
+  console.log(`\nEnabled Models: ${MODEL_CONFIGS.filter(c => c.enabled).map(c => c.name).join(", ") || "NONE"}`);
+  console.log(`Default Model: ${ENV.defaultModel}`);
+  console.log("================================================\n");
+}
+
+// 立即执行日志打印
+logModelConfigStatus();
