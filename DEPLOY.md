@@ -30,26 +30,34 @@
 
 Zeabur 对中文开发者友好，且自动识别构建命令。
 
-1.  注册并登录 [Zeabur Dashboard](https://zeabur.com)。
-2.  创建一个新项目 (Project)。
-3.  点击 "Deploy New Service" -> "Git"，选择你的 GitHub 仓库。
-4.  Zeabur 会自动检测到这是一个 Node.js 项目。
-5.  **设置持久化存储 (Volume)**：
-    *   在服务的 "Settings" -> "Volume" 中，挂载一个路径。
-    *   建议挂载路径为 `/app/data`。
-    *   这样你的 `sqlite.db` 就不会在每次重新部署时丢失。
-6.  **设置环境变量**：
-    *   进入 "Variables" 标签页。
-    *   添加 `DATABASE_URL`，值为 `file:/app/data/sqlite.db` (确保路径与挂载点一致)。
-    *   添加 `JWT_SECRET`，值为随机生成的长字符串。
-    *   添加 `DEFAULT_MODEL`，推荐值 `gemini-2.5-pro`。
-    *   添加 `BUILT_IN_FORGE_API_KEY`，你的 AI API Key。
-    *   **推荐**：添加备用模型 API Key 以提高稳定性：
-        *   `KIMI_API_KEY`: Kimi API Key（国内访问快）
-        *   `QWEN_API_KEY`: Qwen API Key（阿里云，稳定）
-        *   `DEEPSEEK_API_KEY`: Deepseek API Key（推理能力强）
-    *   添加 `ENABLE_AUTO_FAILOVER`，设置为 `true`。
-7.  Zeabur 会自动运行 `npm install` 和 `npm run build`，然后启动服务。
+### 快速部署步骤
+
+1.  注册并登录 [Zeabur Dashboard](https://dash.zeabur.com)。
+2.  创建新项目，选择 **United States** 区域。
+3.  点击 "Deploy New Service" -> "Git"，选择你的 GitHub 仓库 `happy80064-beep/ai-research-app`。
+4.  等待自动构建（约 2-3 分钟）。
+5.  **配置 Volume**（必需）：
+    *   进入服务 "Settings" -> "Volume"
+    *   添加 Volume，挂载路径 `/app/data`
+6.  **配置环境变量**（必需）：
+    *   进入 "Variables" 标签
+    *   添加 `DATABASE_URL` = `file:/app/data/sqlite.db`
+    *   添加 `JWT_SECRET` = 随机长字符串（`openssl rand -base64 32`）
+    *   添加 `DEFAULT_MODEL` = `gemini-2.5-pro`
+    *   添加 `BUILT_IN_FORGE_API_KEY` = 你的 API Key
+    *   **推荐**：添加 `KIMI_API_KEY`、`QWEN_API_KEY`、`DEEPSEEK_API_KEY`
+    *   添加 `ENABLE_AUTO_FAILOVER` = `true`
+7.  生成域名：进入 "Networking" -> "Generate Domain"
+8.  访问域名验证部署
+
+### 📖 详细部署指南
+
+👉 查看完整的 **[ZEABUR_DEPLOY_GUIDE.md](./ZEABUR_DEPLOY_GUIDE.md)** 获取：
+- 详细的图文步骤
+- 环境变量完整说明
+- 常见问题排查
+- 部署后验证清单
+- 安全建议
 
 ### 中国用户访问说明
 
@@ -57,6 +65,15 @@ Zeabur 对中文开发者友好，且自动识别构建命令。
 - Zeabur 域名在国内可直接访问
 - AI 模型调用由服务端完成，用户不直接访问 Gemini
 - 建议配置 Kimi/Qwen 作为备用模型
+
+### 一键验证部署
+
+```bash
+# 查看模型状态
+curl https://your-app.zeabur.app/api/trpc/system.modelStatus
+
+# 应该返回包含 enabledModels 和 healthyModels 的 JSON
+```
 
 ## 方案二：部署到 Railway
 
