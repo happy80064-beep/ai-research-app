@@ -34,13 +34,32 @@ interface PersonaCardProps {
 export function PersonaCard({ persona, onStartInterview }: PersonaCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const personality = typeof persona.personality === 'string'
-    ? JSON.parse(persona.personality)
-    : persona.personality;
-  
-  const behaviorPatterns = typeof persona.behaviorPatterns === 'string'
-    ? JSON.parse(persona.behaviorPatterns)
-    : persona.behaviorPatterns;
+  // 安全地解析 JSON 数据，防止格式错误导致崩溃
+  const parseJSONSafely = (data: any, defaultValue: any = {}) => {
+    if (typeof data === 'object' && data !== null) return data;
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        console.warn('Failed to parse JSON:', data);
+        return defaultValue;
+      }
+    }
+    return defaultValue;
+  };
+
+  const personality = parseJSONSafely(persona.personality, {
+    traits: [],
+    values: [],
+    motivations: [],
+    painPoints: []
+  });
+
+  const behaviorPatterns = parseJSONSafely(persona.behaviorPatterns, {
+    shoppingHabits: [],
+    mediaConsumption: [],
+    decisionFactors: []
+  });
 
   return (
     <Card className="p-6 hover:shadow-lg transition-all duration-300 border-2 border-border/50">
