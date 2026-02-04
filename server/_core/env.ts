@@ -1,7 +1,7 @@
 // ============================================
 // 模型配置类型定义
 // ============================================
-export type ModelProvider = "gemini" | "kimi" | "qwen" | "deepseek" | "forge";
+export type ModelProvider = "openai" | "gemini" | "kimi" | "qwen" | "deepseek";
 
 export interface ModelConfig {
   name: string;
@@ -9,9 +9,9 @@ export interface ModelConfig {
   apiKey: string;
   baseUrl: string;
   enabled: boolean;
-  priority: number; // 优先级，数字越小越优先
-  timeout: number; // 超时时间（毫秒）
-  maxRetries: number; // 最大重试次数
+  priority: number;
+  timeout: number;
+  maxRetries: number;
 }
 
 // ============================================
@@ -25,10 +25,28 @@ export const ENV = {
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
 
-  // 主要 API 配置 (向后兼容)
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-  defaultModel: process.env.DEFAULT_MODEL ?? "gemini-2.5-pro",
+  // OpenAI API (最稳定的首选)
+  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
+  openaiApiUrl: process.env.OPENAI_API_URL ?? "https://api.openai.com/v1",
+
+  // Gemini API
+  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
+  geminiApiUrl: process.env.GEMINI_API_URL ?? "https://generativelanguage.googleapis.com/v1beta",
+
+  // Kimi API
+  kimiApiKey: process.env.KIMI_API_KEY ?? "",
+  kimiApiUrl: process.env.KIMI_API_URL ?? "https://api.moonshot.cn/v1",
+
+  // Qwen API
+  qwenApiKey: process.env.QWEN_API_KEY ?? "",
+  qwenApiUrl: process.env.QWEN_API_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1",
+
+  // Deepseek API
+  deepseekApiKey: process.env.DEEPSEEK_API_KEY ?? "",
+  deepseekApiUrl: process.env.DEEPSEEK_API_URL ?? "https://api.deepseek.com/v1",
+
+  // 默认模型
+  defaultModel: process.env.DEFAULT_MODEL ?? "gpt-4o-mini",
 
   // 是否启用自动故障转移
   enableAutoFailover: process.env.ENABLE_AUTO_FAILOVER !== "false",
@@ -38,104 +56,98 @@ export const ENV = {
 };
 
 // ============================================
-// 多模型配置
+// 多模型配置 - 只启用用户配置了 API Key 的模型
 // ============================================
 export const MODEL_CONFIGS: ModelConfig[] = [
-  // Gemini 2.5+ 系列 (首选)
-  {
-    name: "gemini-2.5-pro",
-    provider: "gemini",
-    apiKey: process.env.GEMINI_API_KEY ?? ENV.forgeApiKey ?? "",
-    baseUrl: process.env.GEMINI_API_URL ?? "https://generativelanguage.googleapis.com/v1beta",
-    enabled: !!(process.env.GEMINI_API_KEY ?? ENV.forgeApiKey),
-    priority: 1,
-    timeout: 60000,
-    maxRetries: 2,
-  },
-  {
-    name: "gemini-3.0-pro",
-    provider: "gemini",
-    apiKey: process.env.GEMINI_API_KEY ?? ENV.forgeApiKey ?? "",
-    baseUrl: process.env.GEMINI_API_URL ?? "https://generativelanguage.googleapis.com/v1beta",
-    enabled: !!(process.env.GEMINI_API_KEY ?? ENV.forgeApiKey),
-    priority: 2,
-    timeout: 60000,
-    maxRetries: 2,
-  },
-  // Kimi 2.5 系列
-  {
-    name: "kimi-2.5",
-    provider: "kimi",
-    apiKey: process.env.KIMI_API_KEY ?? "",
-    baseUrl: process.env.KIMI_API_URL ?? "https://api.moonshot.cn/v1",
-    enabled: !!process.env.KIMI_API_KEY,
-    priority: 3,
-    timeout: 60000,
-    maxRetries: 2,
-  },
-  {
-    name: "moonshot-v1-32k",
-    provider: "kimi",
-    apiKey: process.env.KIMI_API_KEY ?? "",
-    baseUrl: process.env.KIMI_API_URL ?? "https://api.moonshot.cn/v1",
-    enabled: !!process.env.KIMI_API_KEY,
-    priority: 4,
-    timeout: 60000,
-    maxRetries: 2,
-  },
-  // Qwen 系列
-  {
-    name: "qwen-max",
-    provider: "qwen",
-    apiKey: process.env.QWEN_API_KEY ?? "",
-    baseUrl: process.env.QWEN_API_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    enabled: !!process.env.QWEN_API_KEY,
-    priority: 5,
-    timeout: 60000,
-    maxRetries: 2,
-  },
-  {
-    name: "qwen-turbo",
-    provider: "qwen",
-    apiKey: process.env.QWEN_API_KEY ?? "",
-    baseUrl: process.env.QWEN_API_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    enabled: !!process.env.QWEN_API_KEY,
-    priority: 6,
-    timeout: 60000,
-    maxRetries: 2,
-  },
-  // Deepseek 系列
-  {
-    name: "deepseek-reasoner",
-    provider: "deepseek",
-    apiKey: process.env.DEEPSEEK_API_KEY ?? "",
-    baseUrl: process.env.DEEPSEEK_API_URL ?? "https://api.deepseek.com/v1",
-    enabled: !!process.env.DEEPSEEK_API_KEY,
-    priority: 7,
-    timeout: 120000, // Deepseek thinking 需要更长时间
-    maxRetries: 2,
-  },
-  {
-    name: "deepseek-chat",
-    provider: "deepseek",
-    apiKey: process.env.DEEPSEEK_API_KEY ?? "",
-    baseUrl: process.env.DEEPSEEK_API_URL ?? "https://api.deepseek.com/v1",
-    enabled: !!process.env.DEEPSEEK_API_KEY,
-    priority: 8,
-    timeout: 60000,
-    maxRetries: 2,
-  },
-  // Forge 通用配置 (向后兼容)
-  {
-    name: "forge-default",
-    provider: "forge",
-    apiKey: ENV.forgeApiKey ?? "",
-    baseUrl: ENV.forgeApiUrl ?? "https://forge.manus.im",
-    enabled: !!ENV.forgeApiKey,
-    priority: 9,
-    timeout: 60000,
-    maxRetries: 2,
-  },
+  // OpenAI (最稳定，首选)
+  ...(ENV.openaiApiKey ? [
+    {
+      name: "gpt-4o-mini",
+      provider: "openai" as const,
+      apiKey: ENV.openaiApiKey,
+      baseUrl: ENV.openaiApiUrl,
+      enabled: true,
+      priority: 1,
+      timeout: 60000,
+      maxRetries: 2,
+    },
+    {
+      name: "gpt-4o",
+      provider: "openai" as const,
+      apiKey: ENV.openaiApiKey,
+      baseUrl: ENV.openaiApiUrl,
+      enabled: true,
+      priority: 2,
+      timeout: 60000,
+      maxRetries: 2,
+    },
+  ] : []),
+
+  // Gemini
+  ...(ENV.geminiApiKey ? [
+    {
+      name: "gemini-1.5-pro",
+      provider: "gemini" as const,
+      apiKey: ENV.geminiApiKey,
+      baseUrl: ENV.geminiApiUrl,
+      enabled: true,
+      priority: 3,
+      timeout: 60000,
+      maxRetries: 2,
+    },
+    {
+      name: "gemini-1.5-flash",
+      provider: "gemini" as const,
+      apiKey: ENV.geminiApiKey,
+      baseUrl: ENV.geminiApiUrl,
+      enabled: true,
+      priority: 4,
+      timeout: 60000,
+      maxRetries: 2,
+    },
+  ] : []),
+
+  // Kimi
+  ...(ENV.kimiApiKey ? [
+    {
+      name: "moonshot-v1-8k",
+      provider: "kimi" as const,
+      apiKey: ENV.kimiApiKey,
+      baseUrl: ENV.kimiApiUrl,
+      enabled: true,
+      priority: 5,
+      timeout: 60000,
+      maxRetries: 2,
+    },
+  ] : []),
+
+  // Qwen
+  ...(ENV.qwenApiKey ? [
+    {
+      name: "qwen-turbo",
+      provider: "qwen" as const,
+      apiKey: ENV.qwenApiKey,
+      baseUrl: ENV.qwenApiUrl,
+      enabled: true,
+      priority: 6,
+      timeout: 60000,
+      maxRetries: 2,
+    },
+  ] : []),
+
+  // Deepseek
+  ...(ENV.deepseekApiKey ? [
+    {
+      name: "deepseek-chat",
+      provider: "deepseek" as const,
+      apiKey: ENV.deepseekApiKey,
+      baseUrl: ENV.deepseekApiUrl,
+      enabled: true,
+      priority: 7,
+      timeout: 60000,
+      maxRetries: 2,
+    },
+  ] : []),
 ];
 
 // ============================================
@@ -165,4 +177,11 @@ export function getDefaultModelConfig(): ModelConfig | undefined {
   }
   // 否则使用第一个启用的模型
   return getEnabledModelConfigs()[0];
+}
+
+// ============================================
+// 检查是否有任何模型可用
+// ============================================
+export function hasAnyEnabledModel(): boolean {
+  return MODEL_CONFIGS.some(config => config.enabled);
 }

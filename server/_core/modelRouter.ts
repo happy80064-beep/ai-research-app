@@ -313,28 +313,11 @@ function buildApiUrl(config: ModelConfig): string {
 }
 
 // ============================================
-// 模型名称映射表
+// 模型名称映射表 - 如果模型名称需要转换
 // ============================================
 const MODEL_NAME_MAPPING: Record<string, Record<string, string>> = {
-  gemini: {
-    "gemini-2.5-pro": "gemini-1.5-pro-latest",
-    "gemini-3.0-pro": "gemini-1.5-pro-latest",
-  },
-  kimi: {
-    "kimi-2.5": "moonshot-v1-8k",
-    "moonshot-v1-32k": "moonshot-v1-32k",
-  },
-  qwen: {
-    "qwen-max": "qwen-max",
-    "qwen-turbo": "qwen-turbo",
-  },
-  deepseek: {
-    "deepseek-reasoner": "deepseek-reasoner",
-    "deepseek-chat": "deepseek-chat",
-  },
-  forge: {
-    "forge-default": "gpt-4",
-  },
+  // 目前所有模型名称都直接使用，不需要转换
+  // 如果需要别名映射，可以在这里添加
 };
 
 // ============================================
@@ -463,9 +446,34 @@ async function invokeSingleModel(
 ): Promise<InvokeResult> {
   const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 
-  // 特殊处理 Gemini API
-  if (config.provider === "gemini" && config.baseUrl.includes("generativelanguage.googleapis.com")) {
-    const modelName = getActualModelName("gemini", config.name);
+  // OpenAI 标准 API
+  if (config.provider === "openai") {
+    const url = `${config.baseUrl}/chat/completions`;
+    const payload = buildRequestBody(config, params);
+
+    const axiosConfig: Record<string, unknown> = {
+      timeout: config.timeout,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+    };
+
+    if (proxyUrl) {
+      axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+      axiosConfig.proxy = false;
+    }
+
+    console.log(`[ModelRouter] Invoking OpenAI ${config.name} at ${url}`);
+
+    const { data } = await axios.post(url, payload, axiosConfig);
+    markModelSuccess(config.name);
+    return data as InvokeResult;
+  }
+
+  // Gemini API
+  if (config.provider === "gemini") {
+    const modelName = config.name;
     const url = `${config.baseUrl}/models/${modelName}:generateContent?key=${config.apiKey}`;
 
     const axiosConfig: Record<string, unknown> = {
@@ -489,8 +497,8 @@ async function invokeSingleModel(
     return convertGeminiResponse(data, config.name);
   }
 
-  // 标准 OpenAI 兼容 API
-  const url = buildApiUrl(config);
+  // Kimi / Qwen / Deepseek (OpenAI 兼容)
+  const url = `${config.baseUrl}/chat/completions`;
   const payload = buildRequestBody(config, params);
 
   const axiosConfig: Record<string, unknown> = {
@@ -509,10 +517,7 @@ async function invokeSingleModel(
   console.log(`[ModelRouter] Invoking ${config.provider}/${config.name} at ${url}`);
 
   const { data } = await axios.post(url, payload, axiosConfig);
-
-  // 标记成功
   markModelSuccess(config.name);
-
   return data as InvokeResult;
 }
 
