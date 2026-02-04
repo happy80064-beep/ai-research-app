@@ -72,7 +72,13 @@ export default function NewStudyInteractive() {
 
   const generateScenariosMutation = trpc.study.generateScenarioDescriptions.useMutation({
     onSuccess: (data) => {
-      setScenarioDescriptions(data);
+      // 确保数据格式正确
+      const safeData = {
+        work: data?.work || "如会议、报告、决策支持等工作场景",
+        personal: data?.personal || "如健康、家庭、休闲等个人生活场景",
+        both: data?.both || "综合研究工作和个人场景下的决策逻辑",
+      };
+      setScenarioDescriptions(safeData);
       setIsGeneratingScenarios(false);
     },
     onError: (error) => {
@@ -80,8 +86,8 @@ export default function NewStudyInteractive() {
       setIsGeneratingScenarios(false);
       // 失败后使用默认描述
       setScenarioDescriptions({
-        work: "如会议、报告、决策支持等高压时刻",
-        personal: "如健康焦虑、养老规划、家人关怀等私密时刻",
+        work: "如会议、报告、决策支持等工作场景",
+        personal: "如健康、家庭、休闲等个人生活场景",
         both: "综合研究工作和个人场景下的决策逻辑",
       });
     },
@@ -393,7 +399,7 @@ export default function NewStudyInteractive() {
             )}
 
             {step === "scenario" && (
-              <div className="space-y-6">
+              <div className="space-y-6" key="scenario-step">
                 <div>
                   <h2 className="text-2xl font-bold mb-2">{t('newStudyInteractive.scenario.title')}</h2>
                   <p className="text-muted-foreground">
@@ -401,49 +407,82 @@ export default function NewStudyInteractive() {
                   </p>
                 </div>
 
-                {isGeneratingScenarios && (
+                {isGeneratingScenarios ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 bg-accent/30 rounded-xl">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>{t('newStudyInteractive.scenario.generating')}</span>
                   </div>
-                )}
-
-                {!isGeneratingScenarios && (
-                  <RadioGroup
-                    value={plan.scenario}
-                    onValueChange={(value: any) => setPlan({ ...plan, scenario: value })}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-start space-x-3 p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="work" id="work" className="mt-1" />
-                      <Label htmlFor="work" className="cursor-pointer flex-1">
+                ) : (
+                  <div className="space-y-3">
+                    {/* Work Scenario */}
+                    <div
+                      key="work-scenario"
+                      className={`flex items-start space-x-3 p-4 rounded-xl border-2 transition-colors cursor-pointer ${
+                        plan.scenario === 'work' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setPlan({ ...plan, scenario: 'work' })}
+                    >
+                      <div className="mt-1">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          plan.scenario === 'work' ? 'border-primary bg-primary' : 'border-muted-foreground'
+                        }`}>
+                          {plan.scenario === 'work' && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                      <div className="flex-1">
                         <div className="font-semibold mb-1">{t('newStudyInteractive.scenario.work')}</div>
                         <div className="text-sm text-muted-foreground">
                           {scenarioDescriptions?.work || t('newStudyInteractive.scenario.workDefault')}
                         </div>
-                      </Label>
+                      </div>
                     </div>
 
-                    <div className="flex items-start space-x-3 p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="personal" id="personal" className="mt-1" />
-                      <Label htmlFor="personal" className="cursor-pointer flex-1">
+                    {/* Personal Scenario */}
+                    <div
+                      key="personal-scenario"
+                      className={`flex items-start space-x-3 p-4 rounded-xl border-2 transition-colors cursor-pointer ${
+                        plan.scenario === 'personal' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setPlan({ ...plan, scenario: 'personal' })}
+                    >
+                      <div className="mt-1">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          plan.scenario === 'personal' ? 'border-primary bg-primary' : 'border-muted-foreground'
+                        }`}>
+                          {plan.scenario === 'personal' && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                      <div className="flex-1">
                         <div className="font-semibold mb-1">{t('newStudyInteractive.scenario.personal')}</div>
                         <div className="text-sm text-muted-foreground">
                           {scenarioDescriptions?.personal || t('newStudyInteractive.scenario.personalDefault')}
                         </div>
-                      </Label>
+                      </div>
                     </div>
 
-                    <div className="flex items-start space-x-3 p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="both" id="both" className="mt-1" />
-                      <Label htmlFor="both" className="cursor-pointer flex-1">
+                    {/* Both Scenarios */}
+                    <div
+                      key="both-scenario"
+                      className={`flex items-start space-x-3 p-4 rounded-xl border-2 transition-colors cursor-pointer ${
+                        plan.scenario === 'both' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setPlan({ ...plan, scenario: 'both' })}
+                    >
+                      <div className="mt-1">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          plan.scenario === 'both' ? 'border-primary bg-primary' : 'border-muted-foreground'
+                        }`}>
+                          {plan.scenario === 'both' && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                      <div className="flex-1">
                         <div className="font-semibold mb-1">{t('newStudyInteractive.scenario.both')}</div>
                         <div className="text-sm text-muted-foreground">
                           {scenarioDescriptions?.both || t('newStudyInteractive.scenario.bothDefault')}
                         </div>
-                      </Label>
+                      </div>
                     </div>
-                  </RadioGroup>
+                  </div>
                 )}
 
                 <div className="flex justify-between">
