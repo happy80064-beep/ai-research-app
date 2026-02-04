@@ -366,7 +366,7 @@ export default function NewStudyInteractive() {
                         <div className="space-y-3">
                           <div className="text-sm font-medium text-foreground">{t('newStudyInteractive.background.analysisResult')}</div>
                           <ol className="space-y-2 text-sm text-muted-foreground">
-                            {analysisResults.findings.map((finding, index) => (
+                            {(analysisResults.findings || []).map((finding, index) => (
                               <li key={index} className="flex flex-col gap-1">
                                 <span>{index + 1}. {finding.text}</span>
                                 <span className="text-xs text-muted-foreground/70 pl-4">

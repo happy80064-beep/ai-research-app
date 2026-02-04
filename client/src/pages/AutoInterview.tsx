@@ -217,7 +217,7 @@ export default function AutoInterview() {
 
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold">访谈过程</h3>
-                      {currentTranscript.rounds.map((round, index) => (
+                      {(currentTranscript.rounds || []).map((round, index) => (
                         <div key={index} className="space-y-3">
                           <div className="bg-accent/30 rounded-xl p-4">
                             <p className="text-xs font-semibold text-primary mb-2">
@@ -267,7 +267,7 @@ export default function AutoInterview() {
                             关键 Job Stories
                           </h4>
                           <ul className="space-y-2 text-sm">
-                            {currentTranscript.summary.key_job_stories.map((story, i) => (
+                            {(currentTranscript.summary?.key_job_stories || []).map((story, i) => (
                               <li key={i} className="flex items-start gap-2">
                                 <span className="text-primary mt-1">•</span>
                                 <span>{story}</span>
@@ -281,7 +281,7 @@ export default function AutoInterview() {
                             痛点识别
                           </h4>
                           <ul className="space-y-2 text-sm">
-                            {currentTranscript.summary.pain_points.map((point, i) => (
+                            {(currentTranscript.summary?.pain_points || []).map((point, i) => (
                               <li key={i} className="flex items-start gap-2">
                                 <span className="text-primary mt-1">•</span>
                                 <span>{point}</span>
@@ -295,7 +295,7 @@ export default function AutoInterview() {
                             情感触发点
                           </h4>
                           <ul className="space-y-2 text-sm">
-                            {currentTranscript.summary.emotional_triggers.map((trigger, i) => (
+                            {(currentTranscript.summary?.emotional_triggers || []).map((trigger, i) => (
                               <li key={i} className="flex items-start gap-2">
                                 <span className="text-primary mt-1">•</span>
                                 <span>{trigger}</span>
@@ -309,7 +309,7 @@ export default function AutoInterview() {
                             决策因素
                           </h4>
                           <ul className="space-y-2 text-sm">
-                            {currentTranscript.summary.decision_factors.map((factor, i) => (
+                            {(currentTranscript.summary?.decision_factors || []).map((factor, i) => (
                               <li key={i} className="flex items-start gap-2">
                                 <span className="text-primary mt-1">•</span>
                                 <span>{factor}</span>
