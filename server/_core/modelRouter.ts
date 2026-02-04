@@ -293,10 +293,12 @@ function buildApiUrl(config: ModelConfig): string {
   // 不同 provider 的 API 路径不同
   switch (config.provider) {
     case "gemini":
-      // Gemini 使用 OpenAI 兼容模式
+      // Gemini 原生 API 端点（非 OpenAI 兼容）
       if (baseUrl.includes("generativelanguage.googleapis.com")) {
-        return `${baseUrl}/chat/completions`;
+        // Gemini 使用模型特定的端点，需要在请求体中处理
+        return `${baseUrl}/models`;
       }
+      // 如果通过代理或兼容层，使用标准路径
       return `${baseUrl}/v1/chat/completions`;
 
     case "kimi":
@@ -363,16 +365,94 @@ function buildRequestBody(
 }
 
 // ============================================
+// 构建 Gemini 专用请求
+// ============================================
+function buildGeminiRequestBody(params: InvokeParams): Record<string, unknown> {
+  const { messages } = params;
+
+  // 转换消息格式为 Gemini 格式
+  const contents = messages.map(msg => ({
+    role: msg.role === "user" ? "user" : "model",
+    parts: [{ text: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content) }],
+  }));
+
+  return {
+    contents,
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 8192,
+    },
+  };
+}
+
+// ============================================
+// 转换 Gemini 响应为 OpenAI 格式
+// ============================================
+function convertGeminiResponse(data: any, modelName: string): InvokeResult {
+  const candidate = data.candidates?.[0];
+  const content = candidate?.content?.parts?.[0]?.text || "";
+
+  return {
+    id: `gemini-${Date.now()}`,
+    created: Math.floor(Date.now() / 1000),
+    model: modelName,
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: "assistant",
+          content,
+        },
+        finish_reason: candidate?.finishReason?.toLowerCase() || "stop",
+      },
+    ],
+    usage: {
+      prompt_tokens: data.usageMetadata?.promptTokenCount || 0,
+      completion_tokens: data.usageMetadata?.candidatesTokenCount || 0,
+      total_tokens: data.usageMetadata?.totalTokenCount || 0,
+    },
+  };
+}
+
+// ============================================
 // 执行单个模型调用
 // ============================================
 async function invokeSingleModel(
   config: ModelConfig,
   params: InvokeParams
 ): Promise<InvokeResult> {
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+
+  // 特殊处理 Gemini API
+  if (config.provider === "gemini" && config.baseUrl.includes("generativelanguage.googleapis.com")) {
+    const modelName = config.name === "gemini-2.5-pro" ? "gemini-1.5-pro-latest" : config.name;
+    const url = `${config.baseUrl}/models/${modelName}:generateContent?key=${config.apiKey}`;
+
+    const axiosConfig: Record<string, unknown> = {
+      timeout: config.timeout,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
+    if (proxyUrl) {
+      axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+      axiosConfig.proxy = false;
+    }
+
+    console.log(`[ModelRouter] Invoking Gemini ${modelName}`);
+
+    const payload = buildGeminiRequestBody(params);
+    const { data } = await axios.post(url, payload, axiosConfig);
+
+    markModelSuccess(config.name);
+    return convertGeminiResponse(data, config.name);
+  }
+
+  // 标准 OpenAI 兼容 API
   const url = buildApiUrl(config);
   const payload = buildRequestBody(config, params);
 
-  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
   const axiosConfig: Record<string, unknown> = {
     timeout: config.timeout,
     headers: {
@@ -381,7 +461,6 @@ async function invokeSingleModel(
     },
   };
 
-  // 处理代理
   if (proxyUrl) {
     axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
     axiosConfig.proxy = false;
